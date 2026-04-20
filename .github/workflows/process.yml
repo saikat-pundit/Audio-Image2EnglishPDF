@@ -17,7 +17,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
+        
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -47,8 +53,16 @@ jobs:
       - name: Install Python packages
         run: |
           pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
-
+      - name: Cache Whisper model
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/whisper
+          key: whisper-large-${{ runner.os }}
+          restore-keys: |
+            whisper-large-${{ runner.os }}
+          
       - name: Process each link
         env:
           LINKS: ${{ github.event.inputs.drive_links }}
