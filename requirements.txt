@@ -5,3 +5,13 @@ gdown
 reportlab
 pydub
 requests
+gdown
+pdf2image
+Pillow
+transformers
+torch
+torchvision
+torchaudio
+markdown
+pdfkit
+requests
