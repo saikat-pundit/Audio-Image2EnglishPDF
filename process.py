@@ -41,9 +41,10 @@ def convert_m4a_to_wav(m4a_path, wav_path):
     audio.export(wav_path, format="wav")
 
 def transcribe_and_translate_to_english(wav_path):
-    model = whisper.load_model("large")
-    result = model.transcribe(wav_path, language=None, task="translate")
-    return result["text"]
+    model = WhisperModel("large", device="cpu", compute_type="int8")
+    segments, info = model.transcribe(wav_path, task="translate", language=None)
+    text = " ".join([seg.text for seg in segments])
+    return text
 
 def add_header_footer(canvas, doc, filename):
     canvas.saveState()
