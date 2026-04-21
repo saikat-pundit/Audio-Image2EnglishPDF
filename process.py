@@ -10,7 +10,7 @@ from reportlab.lib.enums import TA_JUSTIFY
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
-
+from faster_whisper import WhisperModel
 def extract_file_id(link):
     match = re.search(r'/d/([a-zA-Z0-9_-]+)', link)
     if match:
