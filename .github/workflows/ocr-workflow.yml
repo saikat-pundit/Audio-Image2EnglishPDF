@@ -61,6 +61,7 @@ jobs:
       - name: Process each link
         env:
           LINKS: ${{ github.event.inputs.drive_links }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           IFS=',' read -ra ADDR <<< "$LINKS"
           for link in "${ADDR[@]}"; do
