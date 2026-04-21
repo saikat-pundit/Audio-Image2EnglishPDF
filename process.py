@@ -3,6 +3,7 @@ import sys
 import re
 import gdown
 import whisper
+import concurrent.futures
 from pydub import AudioSegment
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -86,34 +87,50 @@ def create_pdf(text, pdf_path, audio_filename):
         canvas.restoreState()
     
     doc.build(story, onFirstPage=header_footer, onLaterPages=header_footer)
-
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: python process.py <google_drive_link>")
-        sys.exit(1)
-    drive_link = sys.argv[1]
-    m4a_file = "input.m4a"
-    wav_file = "input.wav"
-    print("Downloading from Google Drive...")
-    original_name = download_from_gdrive(drive_link, m4a_file)
+def process_single_link(link):
+    # Generate unique temp filenames using file ID
+    file_id = extract_file_id(link)
+    m4a_file = f"input_{file_id}.m4a"
+    wav_file = f"input_{file_id}.wav"
+    
+    original_name = download_from_gdrive(link, m4a_file)
     if original_name:
         base = os.path.splitext(original_name)[0]
         pdf_file = f"{base}.pdf"
         display_name = original_name
     else:
-        pdf_file = "output.pdf"
+        pdf_file = f"output_{file_id}.pdf"
         display_name = "audio_file"
-    print(f"Output PDF will be: {pdf_file}")
-    print("Converting M4A to WAV...")
+    
     convert_m4a_to_wav(m4a_file, wav_file)
-    print("Transcribing and translating to English using Whisper large model...")
     english_text = transcribe_and_translate_to_english(wav_file)
-    if not english_text:
-        print("ERROR: Transcription returned empty text.")
-        sys.exit(1)
-    print("Creating PDF with formatted headers and justified text...")
     create_pdf(english_text, pdf_file, display_name)
-    print(f"Done. PDF saved as {pdf_file}")
+    
+    # Clean up temp files (optional)
+    os.remove(m4a_file)
+    os.remove(wav_file)
+    
+    return pdf_file
+    
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python process.py <comma_separated_links>")
+        sys.exit(1)
+    raw_links = sys.argv[1]
+    links = [link.strip() for link in raw_links.split(',') if link.strip()]
+    if not links:
+        print("No valid links provided")
+        sys.exit(1)
+    print(f"Processing {len(links)} links in parallel (max 2 at a time)...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        futures = {executor.submit(process_single_link, link): link for link in links}
+        for future in concurrent.futures.as_completed(futures):
+            link = futures[future]
+            try:
+                pdf_name = future.result()
+                print(f"Completed: {pdf_name}")
+            except Exception as e:
+                print(f"Failed for {link}: {e}")
 
 if __name__ == "__main__":
     main()
